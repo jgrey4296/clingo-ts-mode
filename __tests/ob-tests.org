@@ -1,0 +1,186 @@
+#+TITLE: ob-clingo Tests
+
+* Main
+
+** testing ob-clingo
+#+HEADER: :clingo-args -n 4
+#+begin_src clingo :results output
+1{a(1..5)}2.
+
+#+end_src
+
+#+RESULTS:
+#+begin_example
+clingo version 5.6.2
+Reading from /tmp/babel-hbOFdD/clingo-PpnEOU
+Solving...
+Answer: 1
+a(5)
+Answer: 2
+a(3)
+Answer: 3
+a(3) a(5)
+Answer: 4
+a(4)
+SATISFIABLE
+
+Models       : 4+
+Calls        : 1
+Time         : 0.001s (Solving: 0.00s 1st Model: 0.00s Unsat: 0.00s)
+CPU Time     : 0.001s
+#+end_example
+
+** Rain and Sprinklers
+#+begin_src clingo :results output :clingo-models 5 :c-W all :clingo-output-debug all
+0 { rain;sprinkler;summer } 1.
+%:- rain, sprinkler,summer.
+wet(rain) :- rain.
+wet(sprinkler) :- sprinkler.
+dry :- not wet(_).
+-dry :- wet(_).
+%%:- not wet(_).
+#+end_src
+
+** Graph Test
+#+begin_src clingo :results output :clingo-models 5 :c-W all :clingo-output-debug all :clingo-time-limit 10
+node(a;b;c;d;e).
+weight(1..3).
+
+{ edge(X,Y,W) } :- node(X), node(Y), weight(W).
+
+connected(A,B) :- edge(A,B,W).
+connected(B,A) :- edge(A,B,W).
+connected(A,C) :- connected(A,B), connected(B,C), A!=B, A!=C.
+
+all_connected :- connected(Y,X) : node(Y), node(X), X != Y.
+
+all_edges(X,Z3) :- node(X), Z = #count { Y : edge(X,Y,_) }, Z2 = #count{ Y : edge(Y,X,_) }, Z3=Z+Z2.
+all_weights(Z) :- Z = #sum { W,X,Y : edge(X,Y,W) }.
+:- all_connected.
+:- edge(X,X,_).
+:- edge(X,Y,_), edge(Y,X,_).
+:- edge(X,Y,W), edge(X,Y,W2), W!=W2.
+:- all_edges(_,E), E > 2.
+:- all_edges(_,E), E = 0.
+
+#show edge/3.
+#show connected/2.
+#show all_connected/0.
+#show all_weights/1.
+#show all_edges/2.
+#+end_src
+
+** Testblock
+#+begin_src clingo :results output :clingo-models 5 :c-W all :clingo-output-debug all
+{max_count(5..9)} = 1.
+
+time(1..X) :- max_count(X).
+speech(a;b;c;d;e).
+start(a).
+{ end(X) : speech(X) } = 1.
+
+action(0,X,1) :- start(X), time(1).
+
+{ action(S,X,T+1) } :- time(T), speech(X), action(_,S,T), time(T+1).
+action(X,T) :- action(_,X,T).
+
+duplicate(T) :- time(T), C=#count{ temp(X,T) : action(Y,X,T) }, C > 1.
+
+missing :- action(_,_,T), time(T+1), not action(_,_,T+1).
+missing :- time(T), duplicate(T).
+missing :- end(X), T = #max { Y : time(Y) }, not action(X,T).
+missing :- action(b,X,T), X != d.
+missing :- action(X,X,T).
+missing :- not action(_,b,_).
+missing :- action(a,c,T).
+
+:- missing.
+
+#show end/1.
+%% #show action/3.
+#show missing/0.
+#show action/2.
+#+end_src
+
+** another test
+   #+begin_src clingo :results output :clingo-models 5 :c-W all :clindo-output-debug all
+time(1..5).
+fruit(3).
+
+available(X) :- fruit(X).
+
+eat(1, X) :- time(1), fruit(X).
+
+{eat(T, X)} :- time(T), eat(T-1, X+1).
+{buy(T, X+1)} :- time(T), eat(T-1, X).
+{wait(T, 0)}   :- time(T), eat(T-1, 0).
+
+used(T) :- eat(T,_).
+used(T) :- buy(T,_).
+used(T) :- wait(T).
+
+:- eat(T,_), T>5.
+:- eat(_, X), X<0.
+:- eat(5,_); wait(5).
+:- eat(T, _), buy(T, _).
+:- time(T), not used(T).
+
+#show eat/2.
+#show wait/2.
+#show buy/2.
+#+end_src
+
+#+RESULTS:
+#+begin_example
+clingo version 5.4.0
+Reading from ...45c0000gn/T/babel-7DJl0a/clingo-OZxjKu
+Solving...
+Answer: 1
+eat(1,3) eat(2,2) eat(3,1) eat(4,0) buy(5,1)
+Answer: 2
+eat(1,3) eat(2,2) eat(3,1) eat(4,0) buy(5,1) wait(5,0)
+SATISFIABLE
+
+Models       : 2
+Calls        : 1
+Time         : 0.003s (Solving: 0.00s 1st Model: 0.00s Unsat: 0.00s)
+CPU Time     : 0.003s
+#+end_example
+
+** transitions
+#+NAME: transition test
+#+begin_src clingo :results output :clingo-models 5 :c-W all :clingo-output-debug all
+{test(X,Y); test(Y,X)} :- X=a, Y=b.
+
+#+end_src
+
+#+RESULTS: transition test
+#+begin_example
+clingo version 5.4.0
+Reading from ...45c0000gn/T/babel-7DJl0a/clingo-FbTo7f
+Solving...
+Answer: 1
+a
+Answer: 2
+test(b,a) a
+Answer: 3
+test(a,b) a
+Answer: 4
+test(a,b) test(b,a) a
+Answer: 5
+c
+SATISFIABLE
+
+Models       : 5+
+Calls        : 1
+Time         : 0.748s (Solving: 0.00s 1st Model: 0.00s Unsat: 0.00s)
+CPU Time     : 0.004s
+#+end_example
+
+** Simple
+#+NAME: Clingo Simple
+#+begin_src clingo :results output :clingo-models 5 :c-W all :clingo-output-debug all
+a(1..5).
+#+end_src
+
+* Links
