@@ -7,9 +7,9 @@
          "An clingo treesitter mode")
 
 (website-url "https://gitub.com/jgrey4296/clingo-ts-mode")
-(keywords )
+(keywords "clingo" "potassco")
 
-(package-file "clingo-ts-mode.el")
+(package-descriptor "clingo-ts-mode-pkg.el")
 
 (script "test" "echo \"Error: no test specified\" && exit 1")
 
